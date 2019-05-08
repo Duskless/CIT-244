@@ -34,20 +34,19 @@ enum FlightType {
 }
 
 enum Type {
-    Airbus_A220("Airbus_A220", 141),
-    Airbus_A320("Airbus_A320", 206),
-    Airbus_A330("Airbus_A330", 287),
-    Airbus_A350("Airbus_A350", 366),
-    Airbus_A380("Airbus_A380", 544),
-    Boeing_737("Boeing_737", 188),
-    Boeing_747("Boeing_747", 410),
-    Boeing_777("Boeing_777", 400),
-    Boeing_787("Boeing_787", 330);
+    Airbus_A220(141),
+    Airbus_A320(206),
+    Airbus_A330(287),
+    Airbus_A350(366),
+    Airbus_A380(544),
+    Boeing_737(188),
+    Boeing_747(410),
+    Boeing_777(400),
+    Boeing_787(330);
 
-    String name;
     int seats;
 
-    Type(String name, int seats) {
+    Type(int seats) {
         this.seats = seats;
     }
 }

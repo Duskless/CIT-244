@@ -6,10 +6,10 @@
 package airportsimulation;
 
 /**
- *
+ *  NOT IMPLEMENTED YET
  * @author Mafau
  */
 public class Maintenance extends Event {
-
+    
     int lengthInMinutes;
 }

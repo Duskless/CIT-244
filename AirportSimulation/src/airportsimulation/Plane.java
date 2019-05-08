@@ -25,7 +25,7 @@ public class Plane {
         status = "On Time";
 
 
-        id = Integer.toHexString(rng.nextInt(10000)).toLowerCase();
+        id = Integer.toHexString(rng.nextInt(10000)).toUpperCase();
     }
 }
 

@@ -33,7 +33,7 @@ public class Flight extends Event {
             acID = ActionID.Board;
         }
 
-        flightID = Integer.toHexString(rng.nextInt(10000)).toLowerCase();
+        flightID = Integer.toHexString(rng.nextInt(10000)).toUpperCase();
     }
 
     @Override

@@ -6,7 +6,6 @@
 package airportsimulation;
 
 import static java.lang.Thread.sleep;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Random;
@@ -21,20 +20,20 @@ import java.util.logging.Logger;
  */
 public class AirportSimulation {
 
-    static final int TOTAL_PLANES_TO_LAND = 25;
-    static final int TIME_PASSAGE_AMOUNT = 250;
-    static Time time;
+    static final int TOTAL_PLANES_TO_LAND = 25; //Planes to schedule for landing
+    static final int TIME_PASSAGE_AMOUNT = 250; //Amount of time equal to 1 minute | 1000 = 1 second
+    static Time syncedTime;                           //timekeeper
 
-    static boolean run = true;
-    static boolean schedulerRunning = false;
-    static SchronizedSchedule schedule = new SchronizedSchedule();
-    static SchronizedGates gates = new SchronizedGates();
-    static LinkedList<Event> eventList = new LinkedList<>();
-    static LinkedList<Plane> planesForLanding = new LinkedList<>();
-    static Random rng = new Random();
+    static boolean run = true;                  //true while keep running
+    static boolean schedulerRunning = false;    //true while scheduler is running
+    static SynchronizedSchedule schedule = new SynchronizedSchedule();
+    static SynchronizedGates gates = new SynchronizedGates();
+    static LinkedList<Event> eventList = new LinkedList<>();//NOT IMPLEMENTED YET
+    static LinkedList<Plane> planesForLanding = new LinkedList<>();//planes waiting to land
+    static Random rng = new Random();//Random Number Generator
 
     static int planesLanded = 0;
-    static int planesTakenoff = 0;
+    static int planesTakenOff = 0;
     static int passengersArrived = 0;
     static int passengersDeparted = 0;
 
@@ -44,7 +43,7 @@ public class AirportSimulation {
     public static void main(String[] args) {
         gates.put(Gate.Runway, null);
 
-        time = new Time();
+        syncedTime = new Time();
         Runnable timer = new Timer();
         Thread timerThread = new Thread(timer);
 
@@ -54,53 +53,123 @@ public class AirportSimulation {
         run = false;
 
         printSchedule();
+
+        printOut(getStatus());
     }
 
+    /**
+     * Retrieves the status of current planes and passenger throughput
+     *
+     * @return plane and passenger throughput status
+     */
+    public static String getStatus() {
+        String status = "";
+        status += "Planes landed       : " + planesLanded;
+        status += "Planes takenOff     : " + planesTakenOff;
+        status += "Passengers Arrived  : " + passengersArrived;
+        status += "Passengers Departed : " + passengersDeparted;
+
+        return status;
+    }
+
+    /**
+     *
+     * @return the synchronized current Time
+     */
     public synchronized static Time getTime() {
-        return time;
+        return syncedTime;
     }
 
+    /**
+     * passes 1 minute of Time
+     */
     public synchronized static void doTick() {
-        time.doTick();
+        syncedTime.doTick();
     }
 
+    /**
+     * passes (amount) of Time in minutes
+     *
+     * @param amount the number of minutes to pass
+     */
     public synchronized static void doTick(int amount) {
-        time.doTick(amount);
+        syncedTime.doTick(amount);
     }
 
+    /**
+     * receives the synchronized flight at the index from the schedule
+     *
+     * @param index
+     * @return the flight at the index
+     */
     public static Event getFlight(int index) {
         return schedule.getFlight(index);
     }
 
+    /**
+     * removes and receives the synchronized flight at the index from the
+     * schedule
+     *
+     * @param index
+     * @return the flight at the index
+     */
     public static Event removeFlight(int index) {
         return schedule.removeFlight(index);
     }
 
+    /**
+     * adds flight f to the synchronized schedule at the index
+     *
+     * @param index
+     * @param f the flight to add
+     */
     public static void addFlight(int index, Flight f) {
         schedule.addFlight(index, f);
     }
 
+    /**
+     * receives the size of the synchronized schedule
+     *
+     * @return the size of the schedule
+     */
     public static int getSize() {
         return schedule.getSize();
     }
 
+    /**
+     *
+     * @return whether or not the synchronized schedule is empty
+     */
     public static boolean isEmpty() {
         return schedule.isEmpty();
     }
 
+    /**
+     * sends the schedule to printOut();
+     */
     public static void printSchedule() {
         for (int i = 0; i < getSize(); i++) {
             printOut(getFlight(i).toString());
         }
-        System.out.println(Arrays.toString(gates.keySet().toArray()));
     }
 
+    /**
+     * sends String text to an output
+     *
+     * @param text the text to print
+     */
     public static void printOut(String text) {
-        System.out.println("[" + time + "]" + text);
+        System.out.println("[" + getTime() + "]" + text);
     }
 
-    public static int getIndex(String timeString) {
-        Time time = new Time(timeString);
+    /**
+     * gets the index where the Time would be located
+     *
+     * @param t the time to locate an index for
+     * @return the index for Time t
+     */
+    public static int getIndex(Time t) {
+        Time time = new Time(t.toString());
 
         if (isEmpty()) {
             return 0;
@@ -123,9 +192,15 @@ public class AirportSimulation {
         return getSize();
     }
 
-    public static Time getFreeTime(String timeString) {
+    /**
+     * finds a free time on the schedule for a new flight
+     *
+     * @param t the Time to start at
+     * @return the Time that is available
+     */
+    public static Time getFreeTime(Time t) {
 
-        Time time = new Time(timeString);
+        Time time = new Time(t.toString());
 
         int min = time.getMinute() % 4;
         if (min != 0) {
@@ -173,51 +248,11 @@ public class AirportSimulation {
     }
 }
 
-class SchronizedGates{
-    HashMap<Gate, Plane> gates = new HashMap<>();
-    
-    public synchronized Plane get(Gate g){
-        return gates.get(g);
-    }
-    
-    public synchronized Plane remove(Gate g){
-        return gates.remove(g);
-    }
-    
-    public synchronized Set<Gate> keySet(){
-        return gates.keySet();
-    }
-    
-    public synchronized void put(Gate g,Plane p){
-        gates.put(g, p);
-    }
-}
-
-class SchronizedSchedule {
-
-    LinkedList<Event> schedule = new LinkedList<>();
-
-    public synchronized Event getFlight(int index) {
-        return schedule.get(index);
-    }
-
-    public synchronized Event removeFlight(int index) {
-        return schedule.remove(index);
-    }
-
-    public synchronized void addFlight(int index, Flight f) {
-        schedule.add(index, f);
-    }
-
-    public synchronized int getSize() {
-        return schedule.size();
-    }
-
-    public synchronized boolean isEmpty() {
-        return schedule.isEmpty();
-    }
-}
-
+/**
+ * A class to run when an Event occurs
+ *
+ * @author mfaux02
+ */
 class Action implements Runnable {
 
     Event e;
@@ -236,26 +271,31 @@ class Action implements Runnable {
                 break;
             case TaxiIn:
                 //taxiIn();
+                //NOT FULLY IMPLEMENTED YET
                 break;
             case Disembark:
                 //disembark();
+                //NOT FULLY IMPLEMENTED YET
                 break;
             case Board:
                 board();
                 break;
             case TaxiOut:
                 //taxiOut();
+                //NOT FULLY IMPLEMENTED YET
                 break;
             case TakeOff:
                 //takeOff();
+                //NOT FULLY IMPLEMENTED YET
                 break;
             case Maintence:
                 doMaintence();
+                //NOT FULLY IMPLEMENTED YET
                 break;
         }
     }
 
-    public void land() {
+    private void land() {
         Plane plane = null;
 
         for (int i = 0; i < AirportSimulation.planesForLanding.size(); i++) {
@@ -301,7 +341,7 @@ class Action implements Runnable {
         }
     }
 
-    public void taxiIn(Plane plane) {
+    private void taxiIn(Plane plane) {
 
         try {
             sleep((int) (5.5 * AirportSimulation.TIME_PASSAGE_AMOUNT + AirportSimulation.rng.nextInt((int) (1.5 * AirportSimulation.TIME_PASSAGE_AMOUNT))));
@@ -315,7 +355,7 @@ class Action implements Runnable {
         disembark(plane);
     }
 
-    public void disembark(Plane plane) {
+    private void disembark(Plane plane) {
         try {
             sleep(30 * AirportSimulation.TIME_PASSAGE_AMOUNT + AirportSimulation.rng.nextInt(15) * AirportSimulation.TIME_PASSAGE_AMOUNT);
         } catch (InterruptedException ex) {
@@ -329,7 +369,7 @@ class Action implements Runnable {
 
     }
 
-    public void board() {
+    private void board() {
         Plane plane = null;
 
         if (e.planeID.equals(AirportSimulation.gates.get(e.gate).id)) {
@@ -354,7 +394,7 @@ class Action implements Runnable {
 
     }
 
-    public void taxiOut(Plane plane) {
+    private void taxiOut(Plane plane) {
         try {
             sleep((int) (11.5 * AirportSimulation.TIME_PASSAGE_AMOUNT + AirportSimulation.rng.nextInt((int) (2.5 * AirportSimulation.TIME_PASSAGE_AMOUNT))));
         } catch (InterruptedException ex) {
@@ -367,7 +407,7 @@ class Action implements Runnable {
         takeOff(plane);
     }
 
-    public void takeOff(Plane plane) {
+    private void takeOff(Plane plane) {
 
         boolean run = true;
 
@@ -382,7 +422,7 @@ class Action implements Runnable {
                 }
 
                 AirportSimulation.printOut("[RUNWAY]:Plane " + plane.id + " for Flight " + ((Flight) e).flightID + " has taken off!");
-                AirportSimulation.planesTakenoff++;
+                AirportSimulation.planesTakenOff++;
 
                 AirportSimulation.gates.put(Gate.Runway, null);
 
@@ -396,15 +436,20 @@ class Action implements Runnable {
         }
     }
 
-    public void doMaintence() {
+    private void doMaintence() {//NOT IMPLEMENTED YET
 
     }
 }
 
+/**
+ * A class to run to add additional flights to the schedule
+ *
+ * @author mfaux02
+ */
 class Scheduler implements Runnable {
 
-    final int MIN_MINUTE_LANDED_TIME = 160;
-    final int TIME_RANDOMIZER = 15;
+    final int MIN_MINUTE_LANDED_TIME = 160;//The minimum time in minutes for a plane to be landed
+    final int TIME_RANDOMIZER = 15;//a randomizer added to the minimum time
 
     @Override
     public void run() {
@@ -416,22 +461,22 @@ class Scheduler implements Runnable {
             time = new Time(AirportSimulation.getTime().toString());
             time.doTick(16);
 
-            Plane plane = getPlane();
+            Plane plane = createPlane();
             AirportSimulation.planesForLanding.add(plane);
             AirportSimulation.printOut("[SCHEDULER]:Plane " + plane.id + " Registered!");
 
-            Time flightInTime = AirportSimulation.getFreeTime(time.toString());
+            Time flightInTime = AirportSimulation.getFreeTime(time);
             Flight flightIn = createInboundFlight(plane, flightInTime);
-            AirportSimulation.addFlight(AirportSimulation.getIndex(flightIn.time.toString()), flightIn);
+            AirportSimulation.addFlight(AirportSimulation.getIndex(flightIn.time), flightIn);
             AirportSimulation.printOut("[SCHEDULER]:" + flightIn);
             AirportSimulation.gates.put(flightIn.gate, null);
 
             time = new Time(flightInTime.toString());
             time.doTick(MIN_MINUTE_LANDED_TIME + (AirportSimulation.rng.nextInt(TIME_RANDOMIZER) * 4));
 
-            Time flightOutTime = AirportSimulation.getFreeTime(time.toString());
+            Time flightOutTime = AirportSimulation.getFreeTime(time);
             Flight flightOut = createOutboundFlight(plane, flightIn.gate, flightOutTime);
-            AirportSimulation.addFlight(AirportSimulation.getIndex(flightOut.time.toString()), flightOut);
+            AirportSimulation.addFlight(AirportSimulation.getIndex(flightOut.time), flightOut);
             AirportSimulation.printOut("[SCHEDULER]:" + flightOut);
 
         }
@@ -496,7 +541,7 @@ class Scheduler implements Runnable {
         return Gate.Elsewhere;
     }
 
-    public Gate getMaintenceGate() {
+    public Gate getMaintenceGate() {//NOT IMPLEMENTED YET
         String gates = AirportSimulation.gates.keySet().toString();
         if (!gates.contains("M11")) {
             return Gate.M11;
@@ -513,7 +558,7 @@ class Scheduler implements Runnable {
         }
     }
 
-    public Plane getPlane() {
+    public Plane createPlane() {
         Type[] types = Type.values();
         int id = AirportSimulation.rng.nextInt(types.length);
         Type type = types[id];
@@ -530,7 +575,7 @@ class Timer implements Runnable {
             AirportSimulation.doTick();
 
             if (!AirportSimulation.isEmpty()) {
-                if (AirportSimulation.time.compareTo(AirportSimulation.getFlight(0).time) == 0) {
+                if (AirportSimulation.getTime().compareTo(AirportSimulation.getFlight(0).time) == 0) {
 
                     Event f = AirportSimulation.removeFlight(0);
                     Runnable flight = new Action(f);
@@ -540,7 +585,7 @@ class Timer implements Runnable {
             }
             if (!AirportSimulation.eventList.isEmpty()) {
                 for (int i = 0; i < 6; i++) {
-                    if (AirportSimulation.time.compareTo(AirportSimulation.eventList.get(0).time) == 0) {
+                    if (AirportSimulation.getTime().compareTo(AirportSimulation.eventList.get(0).time) == 0) {
 
                         Runnable e = new Action(AirportSimulation.eventList.remove(i));
                         Thread eventThread = new Thread(e);
